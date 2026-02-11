@@ -11,8 +11,8 @@ date_default_timezone_set('Asia/Kolkata');
 // Option B: If simply using an IP whitelist with an empty password user (User's request)
 $host = '10.128.0.3';
 $db   = 'res_erp';
-$user = 'erp_user'; // Ensure this user is configured with "No Authentication" or IAM
-$pass = ''; // No password used
+$user = 'erp_user';
+$pass = 'ResERPDb@2026#!';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -28,8 +28,7 @@ try {
     http_response_code(500);
     // Log error internally
     error_log("Database Connection Error: " . $e->getMessage());
-    // TEMPORARY DEBUGGING: Show actual error
-    echo json_encode(['error' => 'DB Connect Error: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Server Error. Contact Admin.']);
     exit;
 }
 ?>
