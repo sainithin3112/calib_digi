@@ -13,8 +13,9 @@ $host = '10.128.0.3';
 $db   = 'res_erp';
 $user = 'erp_user'; // Ensure this user is configured with "No Authentication" or IAM
 $pass = ''; // No password used
+$charset = 'utf8mb4';
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$utf8mb4";
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
