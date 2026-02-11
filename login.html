@@ -16,8 +16,8 @@
     <h3 class="text-center mb-4">ICMS Login</h3>
     <form id="loginForm">
         <div class="mb-3">
-            <label>Username</label>
-            <input type="text" class="form-control" name="username" required>
+            <label>Employee ID</label>
+            <input type="text" class="form-control" name="username" placeholder="Enter Employee ID" required>
         </div>
         <div class="mb-3">
             <label>Password</label>
@@ -43,7 +43,7 @@
                 document.getElementById('error-msg').textContent = res.error;
             } else {
                 localStorage.setItem('user_role', res.user.role);
-                localStorage.setItem('user_name', res.user.username);
+                localStorage.setItem('user_name', res.user.name); // Store full name
                 window.location.href = 'index.html';
             }
         });

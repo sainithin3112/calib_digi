@@ -73,7 +73,41 @@ if ($method === 'GET') {
     $params[] = $id;
     $sql = "UPDATE calibration_logs SET calibration_date=?, calibrated_by=?, certificate_no=?, pass_fail_status=? $upload_sql WHERE id=?";
     $stmt = $pdo->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
+
+    // --- SYNC INSTRUMENT STATUS ---
+    // 1. Get Instrument ID
+    $stmt = $pdo->prepare("SELECT instrument_id FROM calibration_logs WHERE id = ?");
+    $stmt->execute([$id]);
+    $instId = $stmt->fetchColumn();
+
+    if ($instId) {
+        // 2. Get Latest Log
+        $stmt = $pdo->prepare("SELECT * FROM calibration_logs WHERE instrument_id = ? ORDER BY calibration_date DESC LIMIT 1");
+        $stmt->execute([$instId]);
+        $latest = $stmt->fetch();
+
+        if ($latest) {
+            // 3. Update Instrument
+            if ($latest['pass_fail_status'] === 'Compliant') {
+                // Get frequency
+                $stmtFreq = $pdo->prepare("SELECT frequency_months FROM instruments WHERE id = ?");
+                $stmtFreq->execute([$instId]);
+                $inst = $stmtFreq->fetch();
+                $freq = $inst['frequency_months'] ?? 12;
+
+                $next_date = date('Y-m-d', strtotime($latest['calibration_date'] . " +$freq months"));
+                $upd = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = ?, status = 'Active' WHERE id = ?";
+                $pdo->prepare($upd)->execute([$latest['calibration_date'], $next_date, $instId]);
+            } else {
+                // Fail (Non-Compliant)
+                $upd = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = NULL, status = 'Maintenance' WHERE id = ?";
+                $pdo->prepare($upd)->execute([$latest['calibration_date'], $instId]);
+            }
+        }
+    }
+    
     echo json_encode(['message'=>'Updated']);
 }
 ?>

@@ -75,7 +75,7 @@ if ($method === 'GET') {
                 $stmt->execute([$instrument_id, $calibration_date, $calibrated_by, $certificate_no, $pass_fail, $db_file_path]);
                 
                 // Update Parent Instrument
-                if ($pass_fail === 'Pass') {
+                if ($pass_fail === 'Compliant') {
                     // Get frequency
                     $stmtInst = $pdo->prepare("SELECT frequency_months FROM instruments WHERE id = ?");
                     $stmtInst->execute([$instrument_id]);
@@ -86,6 +86,10 @@ if ($method === 'GET') {
                     
                     $updateSql = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = ?, status = 'Active' WHERE id = ?";
                     $pdo->prepare($updateSql)->execute([$calibration_date, $next_date, $instrument_id]);
+                } elseif ($pass_fail === 'Non-Compliant') {
+                    // Fail: Set status to Maintenance, Update Last Cal Date Only, Clear Next Due
+                    $updateSql = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = NULL, status = 'Maintenance' WHERE id = ?";
+                    $pdo->prepare($updateSql)->execute([$calibration_date, $instrument_id]);
                 }
                 
                 echo json_encode(['message' => 'Calibration logged successfully', 'next_due' => $next_date ?? null]);

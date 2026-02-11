@@ -17,11 +17,11 @@ if (empty($username) || empty($password)) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT password FROM users WHERE username = ?");
+$stmt = $pdo->prepare("SELECT pass FROM users WHERE employee_id = ?");
 $stmt->execute([$username]);
 $user = $stmt->fetch();
 
-if ($user && password_verify($password, $user['password'])) {
+if ($user && password_verify($password, $user['pass'])) {
     echo json_encode(['valid' => true]);
 } else {
     echo json_encode(['valid' => false]);
