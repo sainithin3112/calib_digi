@@ -27,7 +27,8 @@ try {
     http_response_code(500);
     // Log error internally
     error_log("Database Connection Error: " . $e->getMessage());
-    echo json_encode(['error' => 'Server Error. Contact Admin.']);
+    // TEMPORARY DEBUGGING: Show actual error
+    echo json_encode(['error' => 'DB Connect Error: ' . $e->getMessage()]);
     exit;
 }
 ?>
