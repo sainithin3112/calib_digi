@@ -143,92 +143,99 @@ if ($method === 'GET') {
         }
 
     } elseif ($action === 'update') {
-    $id = $_POST['id'];
-    $date = $_POST['calibration_date'];
-    $by = $_POST['calibrated_by'];
-    $cert = $_POST['certificate_no'];
-    $status = $_POST['pass_fail_status'];
-    $manual_next = $_POST['next_due_date'] ?? null;
-    
-    // Handle File Upload
-    $upload_sql = "";
-    $params = [$date, $by, $cert, $status];
-    
-    // --- UPDATED ERROR HANDLING FOR EDIT ---
-    if (isset($_FILES['certificate_file'])) {
-        $file = $_FILES['certificate_file'];
-        if ($file['error'] !== UPLOAD_ERR_OK && $file['error'] !== UPLOAD_ERR_NO_FILE) {
-             // ... duplicate error switch or helper function ...
-             // For brevity, just generic or strictly check if not NO_FILE
-             $msg = 'Upload error code: ' . $file['error'];
-             if($file['error'] == UPLOAD_ERR_INI_SIZE) $msg = 'File exceeds server limit';
-             http_response_code(400); echo json_encode(['error' => $msg]); exit;
-        }
+        try {
+            $id = $_POST['id'] ?? null;
+            if (!$id) {
+                http_response_code(400); echo json_encode(['error' => 'Log ID required']); exit;
+            }
 
-        if ($file['size'] > 10 * 1024 * 1024) {
-            http_response_code(400); echo json_encode(['error' => 'File too large (>10MB)']); exit;
-        }
-
-        if ($file['error'] == 0) {
-            $uploadDir = '../uploads/';
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            $date = $_POST['calibration_date'] ?? date('Y-m-d');
+            $by = $_POST['calibrated_by'] ?? '';
+            $cert = $_POST['certificate_no'] ?? '';
+            $status = $_POST['pass_fail_status'] ?? 'Pass';
+            $manual_next = $_POST['next_due_date'] ?? null;
             
-            $fileName = uniqid() . '_' . basename($file['name']);
-            $targetFile = $uploadDir . $fileName;
+            // Handle File Upload
+            $upload_sql = "";
+            $params = [$date, $by, $cert, $status];
             
-            if (move_uploaded_file($file['tmp_name'], $targetFile)) {
-                // Get old file to delete
-                $stmt = $pdo->prepare("SELECT certificate_file FROM calibration_logs WHERE id = ?");
-                $stmt->execute([$id]);
-                $oldFile = $stmt->fetchColumn();
-                if($oldFile && file_exists("../$oldFile")) {
-                    unlink("../$oldFile");
+            // --- UPDATED ERROR HANDLING FOR EDIT ---
+            if (isset($_FILES['certificate_file'])) {
+                $file = $_FILES['certificate_file'];
+                if ($file['error'] !== UPLOAD_ERR_OK && $file['error'] !== UPLOAD_ERR_NO_FILE) {
+                     $msg = 'Upload error code: ' . $file['error'];
+                     if($file['error'] == UPLOAD_ERR_INI_SIZE) $msg = 'File exceeds server limit';
+                     http_response_code(400); echo json_encode(['error' => $msg]); exit;
                 }
-                
-                $upload_sql = ", certificate_file=?";
-                $params[] = 'uploads/' . $fileName;
+        
+                if ($file['size'] > 10 * 1024 * 1024) {
+                    http_response_code(400); echo json_encode(['error' => 'File too large (>10MB)']); exit;
+                }
+        
+                if ($file['error'] == 0) {
+                    $uploadDir = '../uploads/';
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+                    
+                    $fileName = uniqid() . '_' . basename($file['name']);
+                    $targetFile = $uploadDir . $fileName;
+                    
+                    if (move_uploaded_file($file['tmp_name'], $targetFile)) {
+                        // Get old file to delete
+                        $stmt = $pdo->prepare("SELECT certificate_file FROM calibration_logs WHERE id = ?");
+                        $stmt->execute([$id]);
+                        $oldFile = $stmt->fetchColumn();
+                        if($oldFile && file_exists("../$oldFile")) {
+                            unlink("../$oldFile");
+                        }
+                        
+                        $upload_sql = ", certificate_file=?";
+                        $params[] = 'uploads/' . $fileName;
+                    }
+                }
             }
-        }
-    }
-    
-    $params[] = $id;
-    $sql = "UPDATE calibration_logs SET calibration_date=?, calibrated_by=?, certificate_no=?, pass_fail_status=? $upload_sql WHERE id=?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    // --- SYNC INSTRUMENT STATUS ---
-    // 1. Get Instrument ID
-    $stmt = $pdo->prepare("SELECT instrument_id FROM calibration_logs WHERE id = ?");
-    $stmt->execute([$id]);
-    $instId = $stmt->fetchColumn();
-
-    if ($instId) {
-        // 2. Get Latest Log
-        $stmt = $pdo->prepare("SELECT * FROM calibration_logs WHERE instrument_id = ? ORDER BY calibration_date DESC LIMIT 1");
-        $stmt->execute([$instId]);
-        $latest = $stmt->fetch();
-
-        if ($latest) {
-            // 3. Update Instrument
-            if ($latest['pass_fail_status'] === 'Compliant' || $latest['pass_fail_status'] === 'Pass') {
-                // Get frequency
-                $stmtFreq = $pdo->prepare("SELECT frequency_months FROM instruments WHERE id = ?");
-                $stmtFreq->execute([$instId]);
-                $inst = $stmtFreq->fetch();
-                $freq = $inst['frequency_months'] ?? 12;
-
-                $next_date = $manual_next ? $manual_next : date('Y-m-d', strtotime($latest['calibration_date'] . " +$freq months"));
-                $upd = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = ?, status = 'Active' WHERE id = ?";
-                $pdo->prepare($upd)->execute([$latest['calibration_date'], $next_date, $instId]);
-            } else {
-                // Fail (Non-Compliant)
-                $upd = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = NULL, status = 'Maintenance' WHERE id = ?";
-                $pdo->prepare($upd)->execute([$latest['calibration_date'], $instId]);
+            
+            $params[] = $id;
+            $sql = "UPDATE calibration_logs SET calibration_date=?, calibrated_by=?, certificate_no=?, pass_fail_status=? $upload_sql WHERE id=?";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+        
+            // --- SYNC INSTRUMENT STATUS ---
+            // 1. Get Instrument ID
+            $stmt = $pdo->prepare("SELECT instrument_id FROM calibration_logs WHERE id = ?");
+            $stmt->execute([$id]);
+            $instId = $stmt->fetchColumn();
+        
+            if ($instId) {
+                // 2. Get Latest Log
+                $stmt = $pdo->prepare("SELECT * FROM calibration_logs WHERE instrument_id = ? ORDER BY calibration_date DESC LIMIT 1");
+                $stmt->execute([$instId]);
+                $latest = $stmt->fetch();
+        
+                if ($latest) {
+                    // 3. Update Instrument
+                    if ($latest['pass_fail_status'] === 'Compliant' || $latest['pass_fail_status'] === 'Pass') {
+                        // Get frequency
+                        $stmtFreq = $pdo->prepare("SELECT frequency_months FROM instruments WHERE id = ?");
+                        $stmtFreq->execute([$instId]);
+                        $inst = $stmtFreq->fetch();
+                        $freq = $inst['frequency_months'] ?? 12;
+        
+                        $next_date = $manual_next ? $manual_next : date('Y-m-d', strtotime($latest['calibration_date'] . " +$freq months"));
+                        $upd = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = ?, status = 'Active' WHERE id = ?";
+                        $pdo->prepare($upd)->execute([$latest['calibration_date'], $next_date, $instId]);
+                    } else {
+                        // Fail (Non-Compliant)
+                        $upd = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = NULL, status = 'Maintenance' WHERE id = ?";
+                        $pdo->prepare($upd)->execute([$latest['calibration_date'], $instId]);
+                    }
+                }
             }
+            
+            echo json_encode(['message'=>'Updated']);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Server Error: ' . $e->getMessage()]);
         }
-    }
-    
-    echo json_encode(['message'=>'Updated']);
     }
 }
 
