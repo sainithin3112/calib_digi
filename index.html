@@ -612,11 +612,16 @@
         fetch('api/calibrations.php', { method: 'POST', body: new FormData(this) })
         .then(res => res.json())
         .then(res => {
+            if(res.error) {
+                alert('Error: ' + res.error);
+                return;
+            }
             alert(res.message);
             bootstrap.Modal.getInstance(document.getElementById('editCalModal')).hide();
             bootstrap.Modal.getInstance(document.getElementById('historyModal')).hide();
             loadInstruments();
-        });
+        })
+        .catch(err => alert('Request Failed: ' + err));
     });
 
     window.openHistory = function(id, assetTag) {
