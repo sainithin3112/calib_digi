@@ -198,7 +198,7 @@
                 <form id="calibrationForm">
                     <input type="hidden" name="instrument_id" id="cal_instrument_id">
                     <div class="mb-3">
-                        <label>Date</label>
+                        <label>Calibrated Date</label>
                         <input type="date" class="form-control" name="calibration_date" required id="cal_date_input">
                     </div>
                     <div class="mb-3">
@@ -244,7 +244,7 @@
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="id" id="ecal_id">
                     <div class="mb-3">
-                        <label>Date</label>
+                        <label>Calibrated Date</label>
                         <input type="date" class="form-control" name="calibration_date" id="ecal_date" required>
                     </div>
                     <div class="mb-3">
@@ -531,14 +531,8 @@
     window.openCalModal = function(id) {
         document.getElementById('cal_instrument_id').value = id;
         
-        // Calculate default Next Due based on Today + Frequency
-        const inst = allInstruments.find(i => i.id == id);
-        if(inst) {
-            const freq = parseInt(inst.frequency_months) || 12;
-            const today = new Date();
-            today.setMonth(today.getMonth() + freq);
-            document.getElementById('cal_next_due_input').valueAsDate = today;
-        }
+        // Clear Next Due Date - entered manually
+        document.getElementById('cal_next_due_input').value = '';
 
         new bootstrap.Modal(document.getElementById('calibrationModal')).show();
     }
@@ -556,10 +550,16 @@
 
 
 
-    // New/Update Log Handlers
     function editLog(logId) {
         const log = currentLogsMap[logId];
         if(!log) return alert('Error: Log not found');
+
+        // Find instrument for context
+        const inst = allInstruments.find(i => i.id == log.instrument_id);
+        const assetTag = inst ? inst.asset_tag : 'Unknown';
+
+        // Update Modal Title
+        document.querySelector('#editCalModal .modal-title').innerHTML = `Edit Calibration Log <span class="badge bg-primary ms-2">${assetTag}</span>`;
 
         document.getElementById('ecal_id').value = log.id;
         document.getElementById('ecal_date').value = log.calibration_date;
@@ -567,10 +567,6 @@
         document.getElementById('ecal_cert').value = log.certificate_no;
         
         // Try to find current next due from parent instrument to pre-fill?
-        // Actually, log doesn't store next_due. We can leave it blank or fetch parent?
-        // Simple approach: leave blank or let user set it if they want to override current instrument status.
-        // Better: Find the instrument and show its *current* next due date.
-        const inst = allInstruments.find(i => i.id == log.instrument_id);
         if(inst) {
              document.getElementById('ecal_next_due').value = inst.next_calibration_date;
         }
