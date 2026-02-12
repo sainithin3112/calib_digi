@@ -49,6 +49,7 @@ if ($method === 'GET') {
         $pass_fail = $_POST['pass_fail_status'] ?? 'Pass';
         $calibrated_by = $_POST['calibrated_by'] ?? '';
         $certificate_no = $_POST['certificate_no'] ?? '';
+        $manual_next = $_POST['next_due_date'] ?? null;
         
         if (!$instrument_id) {
             http_response_code(400);
@@ -120,7 +121,7 @@ if ($method === 'GET') {
                      $inst = $stmtInst->fetch();
                      $freq = $inst['frequency_months'] ?? 12; 
                      
-                     $next_date = date('Y-m-d', strtotime($calibration_date . " +$freq months"));
+                     $next_date = $manual_next ? $manual_next : date('Y-m-d', strtotime($calibration_date . " +$freq months"));
                      
                      $updateSql = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = ?, status = 'Active' WHERE id = ?";
                      $pdo->prepare($updateSql)->execute([$calibration_date, $next_date, $instrument_id]);
@@ -147,6 +148,7 @@ if ($method === 'GET') {
     $by = $_POST['calibrated_by'];
     $cert = $_POST['certificate_no'];
     $status = $_POST['pass_fail_status'];
+    $manual_next = $_POST['next_due_date'] ?? null;
     
     // Handle File Upload
     $upload_sql = "";
@@ -215,7 +217,7 @@ if ($method === 'GET') {
                 $inst = $stmtFreq->fetch();
                 $freq = $inst['frequency_months'] ?? 12;
 
-                $next_date = date('Y-m-d', strtotime($latest['calibration_date'] . " +$freq months"));
+                $next_date = $manual_next ? $manual_next : date('Y-m-d', strtotime($latest['calibration_date'] . " +$freq months"));
                 $upd = "UPDATE instruments SET last_calibration_date = ?, next_calibration_date = ?, status = 'Active' WHERE id = ?";
                 $pdo->prepare($upd)->execute([$latest['calibration_date'], $next_date, $instId]);
             } else {
