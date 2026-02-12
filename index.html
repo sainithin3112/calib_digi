@@ -575,8 +575,8 @@
              document.getElementById('ecal_next_due').value = inst.next_calibration_date;
         }
         document.getElementById('ecal_status').innerHTML = `
-            <option value="Compliant" ${log.pass_fail_status === 'Compliant' ? 'selected' : ''}>Compliant</option>
-            <option value="Non-Compliant" ${log.pass_fail_status === 'Non-Compliant' ? 'selected' : ''}>Non-Compliant</option>
+            <option value="Pass" ${log.pass_fail_status === 'Pass' ? 'selected' : ''}>Compliant</option>
+            <option value="Fail" ${log.pass_fail_status === 'Fail' ? 'selected' : ''}>Non-Compliant</option>
         `;
         document.getElementById('ecal_status').value = log.pass_fail_status;
         new bootstrap.Modal(document.getElementById('editCalModal')).show();
