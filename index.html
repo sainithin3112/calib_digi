@@ -506,7 +506,7 @@
     // Calibration Log
     document.getElementById('calibrationForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        fetch(API_URL, { method: 'POST', body: new FormData(this) })
+        fetch('api/calibrations.php', { method: 'POST', body: new FormData(this) })
         .then(res => res.json())
         .then(res => {
             if(res.error) alert('Error: ' + res.error);
