@@ -16,7 +16,7 @@
         .status-maintenance { color: #0d6efd; font-weight: bold; }
         
         /* Ensure Password Modal and Edit Modal are validly stacked */
-        #passwordModal { z-index: 1080; }
+
         #editCalModal { z-index: 1070; }
     </style>
 </head>
@@ -24,29 +24,7 @@
 
 <!-- ... Nav ... --> 
 
-<!-- Password Verify Modal -->
-<div class="modal fade" id="passwordModal" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Admin Verify</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Please re-enter your password to proceed.</p>
-                <div class="input-group mb-3">
-                    <span class="input-group-text">🔒</span>
-                    <input type="password" id="verify_pass" class="form-control" placeholder="Password">
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
-                        👁️
-                    </button>
-                </div>
-                <button onclick="verifyAndExecute()" class="btn btn-dark w-100">Verify</button>
-                <div id="verify-error" class="text-danger mt-2 text-center"></div>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
@@ -234,8 +212,8 @@
                     <div class="mb-3">
                         <label>Status</label>
                         <select class="form-select" name="pass_fail_status">
-                            <option value="Compliant">Compliant</option>
-                            <option value="Non-Compliant">Non-Compliant</option>
+                            <option value="Pass">Compliant</option>
+                            <option value="Fail">Non-Compliant</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -292,23 +270,7 @@
     </div>
 </div>
 
-<!-- Password Verify Modal -->
-<div class="modal fade" id="passwordModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Admin Verify</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Please re-enter your password to proceed.</p>
-                <input type="password" id="verify_pass" class="form-control mb-3" placeholder="Password">
-                <button onclick="verifyAndExecute()" class="btn btn-dark w-100">Verify</button>
-                <div id="verify-error" class="text-danger mt-2 text-center"></div>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- History Modal -->
 <div class="modal fade" id="historyModal" tabindex="-1">
@@ -573,49 +535,8 @@
         new bootstrap.Modal(document.getElementById('editInstrumentModal')).show();
     }
 
-    let tempAction = null;
-    let tempPayload = null;
-    let currentLogsMap = {}; // store logs to avoid passing JSON in HTML
 
-    // Password Verify
-    function togglePassword() {
-        const input = document.getElementById('verify_pass');
-        if (input.type === "password") {
-            input.type = "text";
-        } else {
-            input.type = "password";
-        }
-    }
 
-    function requestVerify(action, payload) {
-        tempAction = action;
-        tempPayload = payload;
-        document.getElementById('verify_pass').value = '';
-        document.getElementById('verify-error').innerText = '';
-        // Ensure z-index handling if needed via JS (optional if CSS works, but let's be safe)
-        const pwModal = new bootstrap.Modal(document.getElementById('passwordModal'));
-        pwModal.show();
-    }
-
-    function verifyAndExecute() {
-        const pass = document.getElementById('verify_pass').value;
-        const username = localStorage.getItem('user_name'); // Send explicit username
-
-        fetch('api/verify_password.php', {
-            method: 'POST',
-            body: JSON.stringify({ password: pass, username: username })
-        })
-        .then(res => res.json())
-        .then(res => {
-            if(res.valid) {
-                bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
-                if(typeof tempAction === 'function') tempAction(tempPayload);
-                else if(typeof window[tempAction] === 'function') window[tempAction](tempPayload);
-            } else {
-                document.getElementById('verify-error').innerText = 'Incorrect Password';
-            }
-        });
-    }
 
     // New/Update Log Handlers
     function editLog(logId) {
@@ -654,6 +575,9 @@
         })
         .catch(err => alert('Request Failed: ' + err));
     }
+
+
+    let currentLogsMap = {};
 
     // Update Log Submit
     document.getElementById('editCalForm').addEventListener('submit', function(e) {
@@ -694,8 +618,8 @@
                     let actionsTd = '';
                     if(userRole === 'admin') {
                         actionsTd = `<td>
-                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="requestVerify(editLog, ${log.id})">✏️</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="requestVerify(deleteLog, ${log.id})">🗑️</button>
+                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="editLog(${log.id})">✏️</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteLog(${log.id})">🗑️</button>
                         </td>`;
                     }
 
