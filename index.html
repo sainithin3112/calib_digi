@@ -531,6 +531,13 @@
     window.openCalModal = function(id) {
         document.getElementById('cal_instrument_id').value = id;
         
+        // Find instrument for context
+        const inst = allInstruments.find(i => i.id == id);
+        const assetTag = inst ? inst.asset_tag : 'Unknown';
+
+        // Update Modal Title
+        document.querySelector('#calibrationModal .modal-title').innerHTML = `Log Calibration Event <span class="badge bg-primary ms-2">${assetTag}</span>`;
+        
         // Clear Next Due Date - entered manually
         document.getElementById('cal_next_due_input').value = '';
 
